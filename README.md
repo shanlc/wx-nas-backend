@@ -13,13 +13,37 @@
 
 ## 群晖部署（Container Manager）
 
-1. 把本仓库放到 NAS，例如 `/volume1/docker/wx-nas-backend`，并在该目录下建 `data/` 文件夹。
-2. 在 Container Manager -> 项目 -> 新增，粘贴 `docker-compose.yml`，把 `volumes` 的 `./data` 改成 NAS 绝对路径，例如 `/volume1/docker/wx-nas-backend/data:/app/data`。
-3. 在项目环境变量里填（不要写进公开仓库）：
-   - `WECHAT_APPID`：小程序 AppID
-   - `WECHAT_SECRET`：小程序 AppSecret
-   - `JWT_SECRET`：随机长字符串，如 `openssl rand -hex 32` 的输出
-4. 启动，浏览器打开 `http://NAS_IP:3000/health`，看到 `{"ok":true}` 即成功。
+### 直接粘贴版：复制下面这段就能用
+
+先做一步准备：把本仓库放到 NAS 的 `/volume1/docker/wx-nas-backend`（`git clone` 或下载 zip 解压都行），并在该目录下建 `data/` 文件夹。下面这段里的 `build: .` 需要用到仓库里的 `Dockerfile`，所以项目路径必须选同一个文件夹。
+
+然后在 Container Manager -> 项目 -> 新增，项目路径选 `/volume1/docker/wx-nas-backend`，把下面这段完整粘贴进去，只改 3 处：`WECHAT_APPID`、`WECHAT_SECRET`、`JWT_SECRET`（`JWT_SECRET` 用 `openssl rand -hex 32` 生成一串随机的填进去）。改完点启动就行，不用再改端口和数据目录。
+
+```yaml
+services:
+  app:
+    build: .
+    image: wx-nas-backend:latest
+    container_name: wx-nas-backend
+    restart: unless-stopped
+    ports:
+      # 左边是 NAS 对外端口，右边 3000 不要改；如 3000 被占，改左边即可，如 3001:3000
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DATA_DIR: "/app/data"
+      WECHAT_APPID: "填你的小程序 AppID"
+      WECHAT_SECRET: "填你的小程序 AppSecret"
+      JWT_SECRET: "填随机长字符串，例如 openssl rand -hex 32 的输出"
+      ALLOW_DEV_LOGIN: "false"
+    volumes:
+      # 数据就存在这个 NAS 文件夹里：SQLite 数据库 + 上传的文件，删容器也不会丢
+      - /volume1/docker/wx-nas-backend/data:/app/data
+```
+
+启动后，浏览器打开 `http://NAS_IP:3000/health`，看到 `{"ok":true}` 即成功。
+
+> 注意：上面 3 个值只填在你自己群晖的项目里，不要把填好真实密钥的版本提交回 GitHub。这个仓库里的 `docker-compose.yml` 用的是 `${WECHAT_APPID}` 这种变量形式，就是为了避免密钥进仓库。
 
 ## 本地 / 服务器 Docker Compose 部署
 
