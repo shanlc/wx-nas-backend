@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    image: wx-nas-backend:latest
+    container_name: wx-nas-backend
+    restart: unless-stopped
+    ports:
+      # 左边是 NAS 对外端口，右边 3000 不要改；如 3000 被占，改左边即可，如 3001:3000
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DATA_DIR: "/app/data"
+      # 必填：在群晖 Container Manager 的环境变量里填，不要写进这个文件后公开提交
+      WECHAT_APPID: "${WECHAT_APPID:-}"
+      WECHAT_SECRET: "${WECHAT_SECRET:-}"
+      JWT_SECRET: "${JWT_SECRET:-}"
+      ALLOW_DEV_LOGIN: "false"
+    volumes:
+      # 群晖上建议把 ./data 换成 NAS 绝对路径，例如 /volume1/docker/wx-nas-backend/data
+      - ./data:/app/data
